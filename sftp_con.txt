@@ -1,0 +1,68 @@
+const fs = require('fs');
+const path = require('path');
+const JSZip = require('jszip');
+const Client = require('ssh2-sftp-client');
+
+// SFTP Configuration
+const sftpConfig = {
+  host: 'your-sftp-server.com',
+  port: 22,
+  username: 'your-username',
+  password: 'your-password', // (or use privateKey: fs.readFileSync('/path/to/private-key'))
+};
+
+// Local and Remote Paths
+const localFolder = './local-files'; // Local folder containing files
+const remoteFolder = '/remote/sftp/folder'; // Remote SFTP folder
+const filePattern = 'HOC-88*'; // File pattern to match
+
+async function uploadFilesToSFTP() {
+  const sftp = new Client();
+  const zip = new JSZip();
+
+  try {
+    // Step 1: Find matching files
+    const files = fs.readdirSync(localFolder).filter(file => 
+      file.startsWith('HOC-88')
+    );
+
+    if (files.length === 0) {
+      console.log('No files matching HOC-88* found.');
+      return;
+    }
+
+    console.log(`Found ${files.length} files matching pattern.`);
+
+    // Step 2: Create a ZIP file
+    for (const file of files) {
+      const filePath = path.join(localFolder, file);
+      const fileData = fs.readFileSync(filePath);
+      zip.file(file, fileData);
+    }
+
+    const zipData = await zip.generateAsync({ type: 'nodebuffer' });
+    const zipFileName = `HOC-88-Files-${Date.now()}.zip`;
+    const zipPath = path.join(localFolder, zipFileName);
+
+    fs.writeFileSync(zipPath, zipData);
+    console.log(`Created ZIP: ${zipFileName}`);
+
+    // Step 3: Upload ZIP to SFTP
+    await sftp.connect(sftpConfig);
+    await sftp.put(zipPath, `${remoteFolder}/${zipFileName}`);
+    console.log('ZIP uploaded successfully!');
+
+    // (Optional) Upload individual files as well
+    for (const file of files) {
+      const filePath = path.join(localFolder, file);
+      await sftp.put(filePath, `${remoteFolder}/${file}`);
+      console.log(`Uploaded ${file}`);
+    }
+
+  } catch (err) {
+    console.error('Error:', err.message);
+  } finally {
+    await sftp.end();
+    console.log('SFTP connection closed.');
+  }
+}
