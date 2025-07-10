@@ -136,3 +136,77 @@ if __name__ == "__main__":
     input_excel = "/content/customer_support_emails.xlsx"  # Change to your input file
     output_excel = "output.xlsx"  # Change to your desired output file
     convert_numbers_to_letters(input_excel, output_excel)
+
+
+
+
+
+
+# CSV Processor: Number Conversion + Account Masking
+import csv
+import re
+
+def process_csv(input_path, output_path):
+    """
+    Processes a CSV file to:
+    1. Convert numbers to letters (1→A, 2→B, ..., 0→J)
+    2. Mask account numbers (10+ digits) with XXXXXXXXXX
+    """
+    # Number to letter mapping
+    NUMBER_MAP = {
+        '1': 'A', '2': 'B', '3': 'C', '4': 'D', '5': 'E',
+        '6': 'F', '7': 'G', '8': 'H', '9': 'I', '0': 'J'
+    }
+    
+    # Regex pattern for account numbers (10+ consecutive digits)
+    ACCOUNT_PATTERN = re.compile(r'(?<!\d)\d{10,}(?!\d)')  # Standalone 10+ digits
+    
+    try:
+        with open(input_path, mode='r', newline='', encoding='utf-8') as infile, \
+             open(output_path, mode='w', newline='', encoding='utf-8') as outfile:
+            
+            reader = csv.reader(infile)
+            writer = csv.writer(outfile)
+            
+            for row in reader:
+                processed_row = []
+                for cell in row:
+                    if cell is None or cell == '':
+                        processed_row.append(cell)
+                        continue
+                        
+                    # Convert to string and process
+                    cell_text = str(cell)
+                    processed_text = cell_text
+                    
+                    # Step 1: Mask account numbers first
+                    processed_text = ACCOUNT_PATTERN.sub('XXXXXXXXXX', processed_text)
+                    
+                    # Step 2: Convert remaining digits to letters
+                    processed_text = ''.join(
+                        [NUMBER_MAP.get(c, c) for c in processed_text]
+                    )
+                    
+                    processed_row.append(processed_text)
+                
+                writer.writerow(processed_row)
+        
+        print(f"Successfully processed and saved to: {output_path}")
+        return True
+    
+    except Exception as e:
+        print(f"Error processing file: {str(e)}")
+        return False
+
+# Example execution (modify paths as needed)
+if __name__ == "__main__":
+    INPUT_FILE = "input_data.csv"  # Change to your input file
+    OUTPUT_FILE = "processed_data.csv"  # Change to your output file
+    
+    # Process the file
+    success = process_csv(INPUT_FILE, OUTPUT_FILE)
+    
+    if success:
+        print("Processing completed successfully!")
+    else:
+        print("Processing failed. Please check error messages.")
