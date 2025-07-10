@@ -1,0 +1,138 @@
+# Complete Excel Processor: Number Conversion + Account Masking
+import openpyxl
+import re
+
+def process_excel_file(input_path, output_path):
+    """
+    Processes an Excel file to:
+    1. Convert numbers to letters (1→A, 2→B, ..., 0→J)
+    2. Mask account numbers (10+ digits) with XXXXXXXXXX
+    """
+    # Number to letter mapping
+    NUMBER_MAP = {
+        '1': 'A', '2': 'B', '3': 'C', '4': 'D', '5': 'E',
+        '6': 'F', '7': 'G', '8': 'H', '9': 'I', '0': 'J'
+    }
+    
+    # Regex pattern for account numbers (10+ consecutive digits)
+    ACCOUNT_PATTERN = re.compile(r'(?<!\d)\d{10,}(?!\d)')  # Standalone 10+ digits
+    
+    try:
+        # Load workbook and process each cell
+        wb = openpyxl.load_workbook(input_path)
+        
+        for sheet in wb.worksheets:
+            for row in sheet.iter_rows():
+                for cell in row:
+                    if cell.value is None:
+                        continue
+                        
+                    # Convert to string and process
+                    cell_text = str(cell.value)
+                    processed_text = cell_text
+                    
+                    # Step 1: Mask account numbers first
+                    processed_text = ACCOUNT_PATTERN.sub('XXXXXXXXXX', processed_text)
+                    
+                    # Step 2: Convert remaining digits to letters
+                    processed_text = ''.join(
+                        [NUMBER_MAP.get(c, c) for c in processed_text]
+                    )
+                    
+                    # Update cell if changed
+                    if processed_text != cell_text:
+                        # Preserve original type if possible
+                        if cell_text.isdigit():
+                            try:
+                                cell.value = int(processed_text) if processed_text.isdigit() else processed_text
+                            except ValueError:
+                                cell.value = processed_text
+                        else:
+                            cell.value = processed_text
+        
+        # Save the processed workbook
+        wb.save(output_path)
+        print(f"Successfully processed and saved to: {output_path}")
+        return True
+    
+    except Exception as e:
+        print(f"Error processing file: {str(e)}")
+        return False
+
+# Example execution (modify paths as needed)
+if __name__ == "__main__":
+    INPUT_FILE = "/content/customer_support_emails.xlsx"  # Change to your input file
+    OUTPUT_FILE = "processed_data.xlsx"  # Change to your output file
+    
+    # Process the file
+    success = process_excel_file(INPUT_FILE, OUTPUT_FILE)
+    
+    if success:
+        print("Processing completed successfully!")
+    else:
+        print("Processing failed. Please check error messages.")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import openpyxl
+from openpyxl.utils import get_column_letter
+
+def convert_numbers_to_letters(input_file, output_file):
+    """
+    Converts all numbers in an Excel file to corresponding letters:
+    1 → A, 2 → B, ..., 9 → I, 0 → J
+    """
+    # Load the workbook
+    wb = openpyxl.load_workbook(input_file)
+    
+    # Define number to letter mapping
+    number_map = {
+        '1': 'A', '2': 'B', '3': 'C', '4': 'D', '5': 'E',
+        '6': 'F', '7': 'G', '8': 'H', '9': 'I', '0': 'J'
+    }
+    
+    # Process each worksheet
+    for sheet in wb.worksheets:
+        for row in sheet.iter_rows():
+            for cell in row:
+                if cell.value is not None:
+                    # Convert if the cell contains only digits
+                    if isinstance(cell.value, (int, float)):
+                        # Handle numeric values
+                        num_str = str(int(cell.value))
+                        converted = ''.join([number_map.get(d, d) for d in num_str])
+                        cell.value = converted
+                    elif isinstance(cell.value, str):
+                        # Handle string values that might contain numbers
+                        converted = []
+                        for char in cell.value:
+                            if char in number_map:
+                                converted.append(number_map[char])
+                            else:
+                                converted.append(char)
+                        cell.value = ''.join(converted)
+    
+    # Save the modified workbook
+    wb.save(output_file)
+    print(f"Conversion complete. Output saved to {output_file}")
+
+# Example usage
+if __name__ == "__main__":
+    input_excel = "/content/customer_support_emails.xlsx"  # Change to your input file
+    output_excel = "output.xlsx"  # Change to your desired output file
+    convert_numbers_to_letters(input_excel, output_excel)
