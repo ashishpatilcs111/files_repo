@@ -1,0 +1,39 @@
+' Add References in Imports panel:
+' Microsoft.Office.Interop.Excel
+' Microsoft.Office.Interop.Word
+
+Imports Microsoft.Office.Interop
+
+Dim excelApp As New Excel.Application
+Dim excelWb As Excel.Workbook = excelApp.Workbooks.Open(excelPath)
+Dim excelWs As Excel.Worksheet = excelWb.Sheets(sheetName)
+
+' Copy the range with formatting
+Dim sourceRange As Excel.Range = excelWs.Range(rangeAddress)
+sourceRange.Copy()
+
+' Open Word and paste into page 2
+Dim wordApp As New Word.Application
+wordApp.Visible = False
+Dim wordDoc As Word.Document = wordApp.Documents.Open(wordPath)
+
+' Go to page 2 (using GoTo)
+Dim rng As Word.Range = wordDoc.GoTo(What:=Word.WdGoToItem.wdGoToPage, Which:=Word.WdGoToDirection.wdGoToAbsolute, Count:=2)
+rng.Paste() ' This preserves formatting
+
+' Save and Close
+wordDoc.Save()
+wordDoc.Close()
+wordApp.Quit()
+
+' Cleanup Excel
+excelWb.Close(False)
+excelApp.Quit()
+
+' Release COM objects
+System.Runtime.InteropServices.Marshal.ReleaseComObject(sourceRange)
+System.Runtime.InteropServices.Marshal.ReleaseComObject(excelWs)
+System.Runtime.InteropServices.Marshal.ReleaseComObject(excelWb)
+System.Runtime.InteropServices.Marshal.ReleaseComObject(excelApp)
+System.Runtime.InteropServices.Marshal.ReleaseComObject(wordDoc)
+System.Runtime.InteropServices.Marshal.ReleaseComObject(wordApp)
